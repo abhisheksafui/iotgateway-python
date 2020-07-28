@@ -16,7 +16,7 @@ class IotGateway:
 
         event_loop_group = io.EventLoopGroup(1)
         host_resolver = io.DefaultHostResolver(event_loop_group)
-        client_bootstrap = io.ClientBootStrap(event_loop_group, host_resolver)
+        client_bootstrap = io.ClientBootstrap(event_loop_group, host_resolver)
 
         mqtt_connection = mqtt_connection_builder.mtls_from_path(
             endpoint=self.endpoint,
