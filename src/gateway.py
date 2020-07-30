@@ -12,6 +12,7 @@ class IotGateway:
         self.root_ca_path = kwargs['root_ca_path']
         self.certificate_path = kwargs['certifcate_path']
         self.private_key_path = kwargs['private_key_path']
+        self.service_list = []
 
     def connect(self):
 
@@ -41,6 +42,29 @@ class IotGateway:
         self_topic = "/" + self.thing_name
         self.subscribe(self_topic, self.on_message)
 
+    def on_shadow_delta_updated(self, event):
+        pass
+
+
+    def subscribe_shadow_delta(self):
+
+        print("Subscribing to Delta events...")
+        delta_subscribed_future, _ = self.shadow_client.subscribe_to_shadow_delta_updated_events(
+            request=iotshadow.ShadowDeltaUpdatedSubscriptionRequest(thing_name=self.thing_name),
+            qos=mqtt.QoS.AT_LEAST_ONCE,
+            callback=self.on_shadow_delta_updated)
+
+
+        #delta_subscribed_future, _ = self.shadow_client.subscribe_to_named_shadow_delta_updated_events(
+        #        request=iotshadow.NamedShadowDeltaUpdatedSubscriptionRequest(thing_name=self.thing_name,shadow_name=SHADOW_NAME),
+        #        qos=mqtt.QoS.AT_LEAST_ONCE,
+        #        callback=on_shadow_delta_update)
+
+        #delta_subscribed_future.result()
+
+        print("Subscribed to shadow delta. Waiting for delta event")
+
+
     def on_message(self, topic, payload, **kwargs):
         
         return
@@ -58,4 +82,8 @@ class IotGateway:
             logging.info("Subscribed with {}".format(str(subscribe_result['qos'])))
         except Exception as e:
             logging.info(e)
+
+    def on_service_discovered(self, service):
+        self.service_list.append(service)
+
 
