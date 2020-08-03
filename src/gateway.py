@@ -1,16 +1,20 @@
 from awscrt import io, mqtt
 from awsiot import iotshadow, mqtt_connection_builder
 import logging
+from devicebrowser import IotBrowserInterface, IotBrowser
+from servicebrowser import ServiceBrowser, ServiceBrowerInterface
+import threading
+import logging
 
 
-class IotGateway:
+class IotGateway(ServiceBrowerInterface):
 
     def __init__(self, **kwargs):
 
         self.thing_name = kwargs['thing_name']
-        self.endpoint = kwargs['endpont']
+        self.endpoint = kwargs['endpoint']
         self.root_ca_path = kwargs['root_ca_path']
-        self.certificate_path = kwargs['certifcate_path']
+        self.certificate_path = kwargs['certificate_path']
         self.private_key_path = kwargs['private_key_path']
         self.service_list = []
 
@@ -86,4 +90,24 @@ class IotGateway:
     def on_service_discovered(self, service):
         self.service_list.append(service)
 
+    def onServiceFound(self, service):
+        pass
 
+    def onServiceRemoved(self, service):
+        pass
+
+
+
+    def run(self):
+
+        logging.info("Started..")
+        service_browser = ServiceBrowser()
+        service_browser.registerServiceBrowserInterface(self)
+        service_browser.browse()
+        
+        deviceBrowser = IotBrowser() 
+        deviceBrowser.registerIotBrowserInterface(service_browser)
+        deviceBrowser.browse()  
+
+        event = threading.Event()
+        event.wait()     
