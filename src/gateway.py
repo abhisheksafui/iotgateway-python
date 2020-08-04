@@ -87,14 +87,11 @@ class IotGateway(ServiceBrowerInterface):
         except Exception as e:
             logging.info(e)
 
-    def on_service_discovered(self, service):
-        self.service_list.append(service)
-
     def onServiceFound(self, service):
-        pass
+        logging.info("Service Added: name=%s, type=%s"%(service.name, service.type))
 
     def onServiceRemoved(self, service):
-        pass
+        logging.info("Service Removed: name=%s, type=%s"%(service.name, service.type))
 
 
 

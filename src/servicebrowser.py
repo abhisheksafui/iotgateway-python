@@ -32,7 +32,8 @@ class ServiceBrowser(IotBrowserInterface):
     def queryDeviceServices(self, ip, port):
 
         msg = { "MSG_TYPE" : "SERVICES_REQUEST" }
-        self.sock.send(msg, (ip, port))
+        msg_str = json.dumps(msg)
+        self.sock.sendto(msg_str.encode('utf-8'), (ip, port))
         logging.info(f"Sent SERVICES_REQUEST to {ip}:{port}")
 
     def onDeviceAdded(self, name, ip, port):
@@ -47,7 +48,7 @@ class ServiceBrowser(IotBrowserInterface):
         """
 
         self.devices[name] = dict(ip = ip, port = port)
-        self.device_ip_port_map.update({(ip, port) : { name : name }})
+        self.device_ip_port_map.update({(ip, port) : { "name" : name }})
         self.queryDeviceServices(ip,port)
     
     def onDeviceRemoved(self, name):
@@ -68,22 +69,22 @@ class ServiceBrowser(IotBrowserInterface):
 
     def parseDeviceMessage(self, msg, addr, port, sock):
         json_msg = json.loads(msg)
-        logging.info("Received Message from {addr}:\n {msg}".format(addr=addr,msg=msg))
+        logging.info("Received Message from {addr}:\n {json_msg}".format(addr=addr,json_msg=json_msg))
 
         msg_type = json_msg.get("MSG_TYPE")
 
         if msg_type is not None:
             services = json_msg.get("SERVICES")
-            if type(services) == list:
-                for s in services:
-                    type = s.get("SERVICE_TYPE")
-                    name = s.get("SERVICE_NAME")
+            
+            for s in services:
+                type = s.get("SERVICE_TYPE")
+                name = s.get("SERVICE_NAME")
 
-                    new_service = Service(name,type, IpAddressContact(addr,port,sock))
-                    self.device_ip_port_map[(addr,port)].update({services: [new_service]})
+                new_service = Service(name,type, IpAddressContact(addr,port,sock))
+                self.device_ip_port_map[(addr,port)].update({"services": [new_service]})
 
-                    for listner in self.listeners:
-                        listner.onServiceFound(new_service)
+                for listner in self.listeners:
+                    listner.onServiceFound(new_service)
 
 
     def listenToDevices(self):
@@ -97,4 +98,4 @@ class ServiceBrowser(IotBrowserInterface):
     def browse(self):
 
         thread = threading.Thread(target=self.listenToDevices)
-        thread.run()
+        thread.start()

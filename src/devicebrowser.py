@@ -39,11 +39,13 @@ class IotBrowser:
         logging.info("\t * Name: {}, Address {}:{}".format(info.name, str(ip), info.port))
 
         for listener in self.listeners:
-            listener.onDeviceAdded(name, ip, info.port)
+            listener.onDeviceAdded(name, str(ip), info.port)
 
     def browse(self):
         self.browser = ServiceBrowser(self.zeroconf, "_iot._udp.local.", self)
         logging.info("Started browsing for _iot._udp.local.")
+
+        
 
 
 if __name__ == "__main__":

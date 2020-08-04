@@ -1,6 +1,8 @@
 
 from gateway import IotGateway
 import logging
+from devicebrowser import IotBrowser
+from servicebrowser import ServiceBrowser
 
 THING_NAME="RaspberryPiZero"
 MY_IOT_END_POINT = '/home/pi/endpoint'
@@ -28,3 +30,5 @@ if __name__ == "__main__":
         thing_name=THING_NAME)
 
     gateway.run()
+
+  
