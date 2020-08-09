@@ -89,15 +89,45 @@ class IotGateway(ServiceBrowerInterface):
 
     def onServiceFound(self, service):
         logging.info("Service Added: name=%s, type=%s"%(service.name, service.type))
-
+        self.service_list.append(service)
+        self.publishState() 
+            
     def onServiceRemoved(self, service):
         logging.info("Service Removed: name=%s, type=%s"%(service.name, service.type))
+        self.service_list.remove(service)
+        self.publishState()
+
+    def publishState(self):
+        #Update thing state corresponding to the gateway 
+        sa = []
+        for s in self.service_list:
+            sd = { 'SERVICE_TYPE': s.type, 'SERVICE_NAME': s.name}
+            sa.append(sd)
+
+        msg = { 'services' : sa, 'service_count': len(sa) }
+
+        request = iotshadow.UpdateShadowRequest(
+            thing_name=self.thing_name,
+            state=iotshadow.ShadowState(reported = msg)
+        )
+
+        future = self.shadow_client.publish_update_shadow(request, mqtt.QoS.AT_LEAST_ONCE)
+        # Ensure that publish succeeds
+        try:
+            future.result()
+            print("Update request published.")
+        except Exception as e:
+            print("Failed to publish update request.")
 
 
 
     def run(self):
 
         logging.info("Started..")
+
+        logging.info("Connecting to AWS Shadow: ")
+        self.connect()
+
         service_browser = ServiceBrowser()
         service_browser.registerServiceBrowserInterface(self)
         service_browser.browse()
@@ -105,6 +135,8 @@ class IotGateway(ServiceBrowerInterface):
         deviceBrowser = IotBrowser() 
         deviceBrowser.registerIotBrowserInterface(service_browser)
         deviceBrowser.browse()  
+
+        
 
         event = threading.Event()
         event.wait()     
