@@ -5,7 +5,7 @@ from devicebrowser import IotBrowserInterface, IotBrowser
 from servicebrowser import ServiceBrowser, ServiceBrowerInterface
 import threading
 import logging
-
+import servicemanager as SM
 
 class IotGateway(ServiceBrowerInterface):
 
@@ -64,7 +64,7 @@ class IotGateway(ServiceBrowerInterface):
         #        qos=mqtt.QoS.AT_LEAST_ONCE,
         #        callback=on_shadow_delta_update)
 
-        #delta_subscribed_future.result()
+        delta_subscribed_future.result()
 
         print("Subscribed to shadow delta. Waiting for delta event")
 
@@ -116,7 +116,7 @@ class IotGateway(ServiceBrowerInterface):
         try:
             future.result()
             print("Update request published.")
-        except Exception as e:
+        except:
             print("Failed to publish update request.")
 
 
@@ -124,6 +124,9 @@ class IotGateway(ServiceBrowerInterface):
     def run(self):
 
         logging.info("Started..")
+
+        self.sm = SM.ServiceManager()
+        self.sm.launch()
 
         logging.info("Connecting to AWS Shadow: ")
         self.connect()

@@ -34,7 +34,7 @@ class ServiceBrowser(IotBrowserInterface):
         msg = { "MSG_TYPE" : "SERVICES_REQUEST" }
         msg_str = json.dumps(msg)
         self.sock.sendto(msg_str.encode('utf-8'), (ip, port))
-        logging.info(f"Sent SERVICES_REQUEST to {ip}:{port}")
+        logging.info("Sent SERVICES_REQUEST to {ip}:{port}".format(ip=ip, port=port))
 
     def onDeviceAdded(self, name, ip, port):
         """ Store name to ip,port mapping and (ip,port) to dict of name 
@@ -54,7 +54,7 @@ class ServiceBrowser(IotBrowserInterface):
     def onDeviceRemoved(self, name):
         device = self.devices.get(name)
         if device is None:
-            logging.error(f"Device {name} not found.")
+            logging.error("Device {name} not found".format(name=name))
             return
         ip = device.get("ip")
         port = device.get("port")
@@ -68,10 +68,11 @@ class ServiceBrowser(IotBrowserInterface):
                 listner.onServiceRemoved(service)
 
     def parseDeviceMessage(self, msg, addr, port, sock):
-        json_msg = json.loads(msg)
+        json_msg = json.loads(msg.decode())
         logging.info("Received Message from {addr}:\n {json_msg}".format(addr=addr,json_msg=json_msg))
 
         msg_type = json_msg.get("MSG_TYPE")
+        device_id = json_msg.get("DEVICE_ID")
 
         if msg_type is not None:
             services = json_msg.get("SERVICES")
@@ -80,7 +81,7 @@ class ServiceBrowser(IotBrowserInterface):
                 type = s.get("SERVICE_TYPE")
                 name = s.get("SERVICE_NAME")
 
-                new_service = Service(name,type, IpAddressContact(addr,port,sock))
+                new_service = Service(name, type, device_id, IpAddressContact(addr,port,sock))
                 self.device_ip_port_map[(addr,port)].update({"services": [new_service]})
 
                 for listner in self.listeners:

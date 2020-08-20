@@ -30,26 +30,42 @@ class ServiceType(enum.Enum):
 
 class Service:
 
-    def __init__(self, name, type, contact):
+    def __init__(self, name, type, device_id, contact):
         self.name = name
         self.type = type
+        self.device_id = device_id
         self.contact = contact
+        self.state = {}
         
+    def sendGetRequest(self):
 
-
-    def prepare_get_message(self):
-        msg = \
-        { 
+        msg = { 
             "MSG_TYPE" : "GET_REQUEST" ,
             "SERVICE_ARRAY" : [ { "SERVICE_TYPE" : self.type.name, "SERVICE_NAME" : self.name  } ]
         }
-        return json.dumps(msg, indent=2)
 
-    def sendGetRequest(self, state):
+        self.contact.send(json.dumps(msg, indent=2))
 
-        msg = self.prepare_get_message()
-        self.contact.send(msg)
+    # def updateShadowState(self):
+    
+    #     request = iotshadow.UpdateNamedShadowRequest(
+    #         thing_name=self.thing_name,
+    #         shadow_name=self.device_id + "-" + self.name,
+    #         state=iotshadow.ShadowState(reported = self.state)
+    #     )
 
-    def setState(self,state):
+    #     future = self.shadow_client.publish_update_named_shadow(request, mqtt.QoS.AT_LEAST_ONCE)
+    #     # Ensure that publish succeeds
+    #     try:
+    #         future.result()
+    #         print("Update request published.")
+    #     except Exception as e:
+    #         print("Failed to publish update request.")
+
+
+
+    def onDeltaUpdate(self):
         pass
 
+    def subscribeDelta(self, shadow_client):
+        pass

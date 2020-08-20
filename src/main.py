@@ -22,8 +22,12 @@ if __name__ == "__main__":
 
     init()
 
+    with open(MY_IOT_END_POINT,"r") as f:
+        endpoint = f.read().strip()
+
+    logging.info("Endpoint: %s" % endpoint)
     gateway = IotGateway(
-        endpoint=MY_IOT_END_POINT,
+        endpoint=endpoint,
         root_ca_path=ROOT_CA_PATH,
         certificate_path=CERTIFICATE_PATH,
         private_key_path=PRIVATE_KEY_PATH,
