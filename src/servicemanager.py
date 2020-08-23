@@ -4,11 +4,13 @@ import queue
 import threading
 import logging
 import asyncio
+from timer import SingleRunTimer
 
 class ServiceManagerInterface:
 
     def onServiceStateChange(self):
         pass 
+
 
 
 
@@ -18,44 +20,45 @@ class ServiceManager(asyncio.Protocol):
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.service_map = {}
         self.service_list = []
+        self.transport = None
 
-    def addService(self, device_id, s_name, s_type, addr):
+    def addService(self, new_service):
         
-        new_service = service.Service(s_name, s_type, device_id, addr)
-        self.service_map.update({
-            (device_id, s_name, s_type): { 'service' : new_service, 'queue' : queue.Queue() }
-        })
+        
         self.service_list.append(new_service)
+        timer = SingleRunTimer(5, self.sendServiceGetRequest, new_service)
 
+        self.service_map.update({
+            (new_service.device_id, new_service.name, new_service.type): 
+            { 'service' : new_service, 'queue' : queue.Queue(), 'timer': timer }
+        })
             
-  
-    def getServiceState(self, service):
-
-        msg = service.formGetRequest()
+    def sendServiceGetRequest(self, s):
+        msg = s.formGetRequest()
         data = msg.encode()
+        self.transport.sendto(data, s.addr)
 
-        self.transport.sendto(data, service.addr)
-
-
+    
     def connection_made(self, transport):
         self.transport = transport
+        sock = transport.get_extra_info('socket')
+        logging.info("Started listening to UDP events from Services")
+        logging.info("Listening on {}".format(sock.getsockname()))
 
     def data_received(self, data, addr):
         message = data.decode()
         logging.info("Received UDP data %s from %s" %(message, addr))
 
+    def threadFunction(self):
 
-    
-    async def threadFunction(self):
-        
         logging.info("Started Service Manager Thread")
-        loop = asyncio.get_event_loop()
-
-        transport, protocol = await loop.create_datagram_endpoint(self, local_addr=('0.0.0.0', 0))
-        sock = transport.get_extra_info('socket')
-        logging.info("Started listening to UDP events from Services")
-        logging.info("Listening on {}".format(sock.getsockname()))
-
+        
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        cor =  self.loop.create_datagram_endpoint(lambda : self, local_addr=('0.0.0.0', 0))
+        self.loop.create_task(cor)
+        
+        self.loop.run_forever()
 
     def launch(self):
 

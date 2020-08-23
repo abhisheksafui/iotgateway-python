@@ -1,6 +1,6 @@
 from devicebrowser import IotBrowserInterface
 import abc
-from service import Service, IpAddressContact
+from service import Service
 import threading
 import json
 import logging
@@ -81,7 +81,7 @@ class ServiceBrowser(IotBrowserInterface):
                 type = s.get("SERVICE_TYPE")
                 name = s.get("SERVICE_NAME")
 
-                new_service = Service(name, type, device_id, IpAddressContact(addr,port,sock))
+                new_service = Service(name, type, device_id, (addr,port))
                 self.device_ip_port_map[(addr,port)].update({"services": [new_service]})
 
                 for listner in self.listeners:
