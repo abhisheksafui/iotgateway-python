@@ -91,6 +91,7 @@ class IotGateway(ServiceBrowerInterface):
         logging.info("Service Added: name=%s, type=%s"%(service.name, service.type))
         self.service_list.append(service)
         self.publishState() 
+        self.sm.addService(service)
             
     def onServiceRemoved(self, service):
         logging.info("Service Removed: name=%s, type=%s"%(service.name, service.type))
@@ -126,7 +127,7 @@ class IotGateway(ServiceBrowerInterface):
         logging.info("Started..")
 
         self.sm = SM.ServiceManager()
-        self.sm.launch()
+        self.sm.start()
 
         logging.info("Connecting to AWS Shadow: ")
         self.connect()

@@ -22,7 +22,7 @@ class Service:
 
         msg = { 
             "MSG_TYPE" : "GET_REQUEST" ,
-            "SERVICE_ARRAY" : [ { "SERVICE_TYPE" : self.type.name, "SERVICE_NAME" : self.name  } ]
+            "SERVICES" : [ { "SERVICE_TYPE" : self.type, "SERVICE_NAME" : self.name  } ]
         }
 
         return msg
