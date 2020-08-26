@@ -3,11 +3,12 @@ import socket
 import enum
 import json
 from devicebrowser import IotBrowserInterface
-
-class ServiceType(enum.Enum):
-    SWITCH=1,
-    DIMMER=2
-
+   
+class ServiceMsgKeys(enum.Enum):
+    MSG_TYPE = "MSG_TYPE"
+    SERVICE_ARRAY = "SERVICES"
+    SERVICE_TYPE = "SERVICE_TYPE"
+    SERVICE_NAME = "SERVICE_NAME"
 
 class Service:
 
@@ -21,8 +22,8 @@ class Service:
     def formGetRequest(self):
 
         msg = { 
-            "MSG_TYPE" : "GET_REQUEST" ,
-            "SERVICES" : [ { "SERVICE_TYPE" : self.type, "SERVICE_NAME" : self.name  } ]
+            ServiceMsgKeys.MSG_TYPE.value : "GET_REQUEST" ,
+            ServiceMsgKeys.SERVICE_ARRAY.value : [ { "SERVICE_TYPE" : self.type, "SERVICE_NAME" : self.name  } ]
         }
 
         return msg
