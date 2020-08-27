@@ -34,7 +34,7 @@ class ServiceBrowser(IotBrowserInterface):
         msg = { "MSG_TYPE" : "SERVICES_REQUEST" }
         msg_str = json.dumps(msg)
         self.sock.sendto(msg_str.encode('utf-8'), (ip, port))
-        logging.info("Sent SERVICES_REQUEST to {ip}:{port}".format(ip=ip, port=port))
+        logging.debug("Sent SERVICES_REQUEST to {ip}:{port}".format(ip=ip, port=port))
 
     def onDeviceAdded(self, name, ip, port):
         """ Store name to ip,port mapping and (ip,port) to dict of name 
@@ -69,7 +69,7 @@ class ServiceBrowser(IotBrowserInterface):
 
     def parseDeviceMessage(self, msg, addr, port, sock):
         json_msg = json.loads(msg.decode())
-        logging.info("Received Message from {addr}:\n {json_msg}".format(addr=addr,json_msg=json_msg))
+        logging.debug("Received Message from {addr}:\n {json_msg}".format(addr=addr,json_msg=json_msg))
 
         msg_type = json_msg.get("MSG_TYPE")
         device_id = json_msg.get("DEVICE_ID")

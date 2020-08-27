@@ -1,15 +1,17 @@
 import socket
-import service
+from service import Service, ServiceMsgKeys, ServiceMsgTypes
 import queue
 import threading
 import logging
 import asyncio
 from timer import Timer
 import json
+import abc
 
 class ServiceManagerInterface:
 
-    def onServiceStateChange(self):
+    @abc.abstractmethod
+    def onServiceStateChange(self, service):
         pass 
 
 def tf(a,b):
@@ -22,7 +24,11 @@ class ServiceManager(threading.Thread, asyncio.Protocol):
         self.service_map = {}
         self.service_list = []
         self.transport = None
+        self.smi_register = []
         threading.Thread.__init__(self)
+
+    def addServiceMessageInterface(self, inteface):
+        self.smi_register.append(inteface)
 
     def addService(self, new_service):
                 
@@ -37,8 +43,8 @@ class ServiceManager(threading.Thread, asyncio.Protocol):
     def sendServiceGetRequest(self, timer, s):
         
         msg = s.formGetRequest()
-        logging.info("Sending request: {}".format(msg))
-        logging.info("Sending to: {}".format(s.addr))
+        logging.debug("Sending request: {}".format(msg))
+        logging.debug("Sending to: {}".format(s.addr))
         data = json.dumps(msg).encode()
         self.transport.sendto(data, s.addr)
 
@@ -50,8 +56,41 @@ class ServiceManager(threading.Thread, asyncio.Protocol):
         logging.info("Listening on {}".format(sock.getsockname()))
 
     def datagram_received(self, data, addr):
-        message = data.decode()
-        logging.info("Received UDP data %s from %s" %(message, addr))
+
+        try:
+
+            message = data.decode()
+            logging.debug("Received UDP data %s from %s" %(message, addr))
+
+            msg_dict = json.loads(message)
+            device_id = msg_dict.get(ServiceMsgKeys.DEVICE_ID.value)
+            msg_type =  msg_dict.get(ServiceMsgKeys.MSG_TYPE.value) 
+
+            if msg_type == ServiceMsgTypes.GET_RESPONSE.value:
+
+                for s in msg_dict.get(ServiceMsgKeys.SERVICE_ARRAY.value, {}):
+                    name = s.get(ServiceMsgKeys.SERVICE_NAME.value)
+                    type = s.get(ServiceMsgKeys.SERVICE_TYPE.value)
+                    state = s.get(ServiceMsgKeys.SERVICE_STATE.value)
+                    s_map = self.service_map[(device_id, name, type)]
+                    service = s_map.get("service")
+                    
+                    if service == None:
+                        logging.warn("Service not found: ({} {} {})".format(device_id, name, type))
+                        continue
+
+                    if service.state != state:
+                        logging.info("Service state changed ")
+                        service.setState(state)
+                        for r in self.smi_register:
+                            r.onServiceStateChange(service)
+
+
+        except Exception as e:
+            logging.error("Exception in datagram_receive processing {}".format(e))
+
+
+
 
     def threadFunction(self):
 

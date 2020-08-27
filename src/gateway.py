@@ -7,7 +7,7 @@ import threading
 import logging
 import servicemanager as SM
 
-class IotGateway(ServiceBrowerInterface):
+class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
 
     def __init__(self, **kwargs):
 
@@ -120,6 +120,8 @@ class IotGateway(ServiceBrowerInterface):
         except:
             print("Failed to publish update request.")
 
+    def onServiceStateChange(self, service):
+        logging.info("Updating Service State to Service Shadow")
 
 
     def run(self):
@@ -127,6 +129,7 @@ class IotGateway(ServiceBrowerInterface):
         logging.info("Started..")
 
         self.sm = SM.ServiceManager()
+        self.sm.addServiceMessageInterface(self)
         self.sm.start()
 
         logging.info("Connecting to AWS Shadow: ")

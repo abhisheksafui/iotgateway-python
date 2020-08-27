@@ -3,12 +3,19 @@ import socket
 import enum
 import json
 from devicebrowser import IotBrowserInterface
+import logging
    
 class ServiceMsgKeys(enum.Enum):
     MSG_TYPE = "MSG_TYPE"
+    DEVICE_ID = "DEVICE_ID"
     SERVICE_ARRAY = "SERVICES"
     SERVICE_TYPE = "SERVICE_TYPE"
     SERVICE_NAME = "SERVICE_NAME"
+    SERVICE_STATE = "SERVICE_STATE"
+
+class ServiceMsgTypes(enum.Enum):
+    GET_REQUEST = "GET_REQUEST"
+    GET_RESPONSE = "GET_RESPONSE"
 
 class Service:
 
@@ -17,7 +24,7 @@ class Service:
         self.type = type
         self.device_id = device_id
         self.addr = addr
-        self.state = {}
+        self.state = None
         
     def formGetRequest(self):
 
@@ -27,6 +34,11 @@ class Service:
         }
 
         return msg
+    
+    def setState(self, state):
+        self.state = state
+        logging.info(" (*) Setting new state for Service: {}-{}-{} State: {}".
+        format(self.device_id, self.name, self.type, self.state))
 
     # def updateShadowState(self):
     
