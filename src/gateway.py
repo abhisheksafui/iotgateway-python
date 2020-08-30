@@ -97,6 +97,7 @@ class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
         logging.info("Service Removed: name=%s, type=%s"%(service.name, service.type))
         self.service_list.remove(service)
         self.publishState()
+        self.sm.removeService(service)
 
     def publishState(self):
         #Update thing state corresponding to the gateway 

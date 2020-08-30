@@ -48,7 +48,7 @@ class ServiceBrowser(IotBrowserInterface):
         """
 
         self.devices[name] = dict(ip = ip, port = port)
-        self.device_ip_port_map.update({(ip, port) : { "name" : name }})
+        self.device_ip_port_map.update({(ip, port) : { "name" : name, "services": []}})
         self.queryDeviceServices(ip,port)
     
     def onDeviceRemoved(self, name):
@@ -59,13 +59,12 @@ class ServiceBrowser(IotBrowserInterface):
         ip = device.get("ip")
         port = device.get("port")
         services = self.device_ip_port_map[(ip,port)].get("services")
-        if services is None:
-            logging.info("Device has no services")
-            return
-        
+      
         for service in services:
             for listner in self.listeners:
                 listner.onServiceRemoved(service)
+
+        del self.device_ip_port_map[(ip,port)]
 
     def parseDeviceMessage(self, msg, addr, port, sock):
         json_msg = json.loads(msg.decode())
@@ -82,7 +81,8 @@ class ServiceBrowser(IotBrowserInterface):
                 name = s.get("SERVICE_NAME")
 
                 new_service = Service(name, type, device_id, (addr,port))
-                self.device_ip_port_map[(addr,port)].update({"services": [new_service]})
+
+                self.device_ip_port_map[(addr,port)]["services"].append(new_service)
 
                 for listner in self.listeners:
                     listner.onServiceFound(new_service)

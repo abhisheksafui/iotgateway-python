@@ -47,13 +47,16 @@ class Timer:
 
     async def _job(self):
 
-        #logging.info("_job called")
-        await asyncio.sleep(self._timeout)
-        #logging.info("_job calling callback")
-        self._callback(self, self._args)
-        #logging.info("_job callback finished")
-        if self._repeat == True:
-          self.repeat()
+        while True:
+
+            logging.debug("_job called")
+            await asyncio.sleep(self._timeout)
+            logging.debug("_job calling callback")
+            self._callback(self, self._args)
+            logging.debug("_job callback finished")
+            if self._repeat == False:
+                break
+            
 
     def _start(self):
         #logging.info("_start called ")
@@ -61,12 +64,18 @@ class Timer:
 
     def start(self, loop=None, repeat=False):
         #logging.info("start called")
+        if loop == None:
+            loop = asyncio.get_event_loop()
         self._loop = loop
-        self._repeat=repeat
+        self._repeat=repeat     
         loop.call_soon_threadsafe(self._start)
 
     def repeat(self):
         self._start()
+
+    def stop(self):
+        logging.info("Stopping timer")
+        self._task.cancel()
 
 
 
