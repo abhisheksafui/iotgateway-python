@@ -6,6 +6,8 @@ from servicebrowser import ServiceBrowser, ServiceBrowerInterface
 import threading
 import logging
 import servicemanager as SM
+from functools import partial
+
 
 class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
 
@@ -17,6 +19,7 @@ class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
         self.certificate_path = kwargs['certificate_path']
         self.private_key_path = kwargs['private_key_path']
         self.service_list = []
+        self.service_map = {}
 
     def connect(self):
 
@@ -52,7 +55,7 @@ class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
 
     def subscribe_shadow_delta(self):
 
-        print("Subscribing to Delta events...")
+        logging.info("Subscribing to Delta events...")
         delta_subscribed_future, _ = self.shadow_client.subscribe_to_shadow_delta_updated_events(
             request=iotshadow.ShadowDeltaUpdatedSubscriptionRequest(thing_name=self.thing_name),
             qos=mqtt.QoS.AT_LEAST_ONCE,
@@ -87,17 +90,52 @@ class IotGateway(ServiceBrowerInterface, SM.ServiceManagerInterface):
         except Exception as e:
             logging.info(e)
 
+
+    def onShadowDeltaUpdate(self, service, delta_event):
+        
+        logging.info("Received Shadow delta for service: {}".format(service))
+        state = delta_event.state
+        timestamp = delta_event.timestamp
+        version = delta_event.version
+        logging.info("state: {}".format(state))
+        logging.info("timestamp: {}".format(timestamp))
+        logging.info("version: {}".format(version))
+
+        
+
     def onServiceFound(self, service):
         logging.info("Service Added: name=%s, type=%s"%(service.name, service.type))
         self.service_list.append(service)
         self.publishState() 
         self.sm.addService(service)
+
+        service_tuple = (service.device_id, service.name, service.type)
+        tmp_list = list(service_tuple)
+        shadow_name = "-".join(tmp_list)
+
+        logging.info("Subscribing to named shadow Delta events: %s" % shadow_name)
+        delta_subscribed_future, topic = self.shadow_client.subscribe_to_named_shadow_delta_updated_events(
+            request=iotshadow.NamedShadowDeltaUpdatedSubscriptionRequest(
+                thing_name=self.thing_name,shadow_name=shadow_name),
+            qos=mqtt.QoS.AT_LEAST_ONCE,
+            callback=partial(self.onShadowDeltaUpdate, service))
+
+        try:
+            result = delta_subscribed_future.result()
+        except Exception as e:
+            logging.error("Error subscribing delta %s" % e)
+        logging.info("Subscribed to service delta")
+        self.service_map.update({service_tuple: {}})
+        self.service_map[service_tuple].update({"service" : service, "shadow_topic": topic})
             
     def onServiceRemoved(self, service):
         logging.info("Service Removed: name=%s, type=%s"%(service.name, service.type))
         self.service_list.remove(service)
         self.publishState()
         self.sm.removeService(service)
+        service_tuple = (service.device_id, service.name, service.type)
+        topic = self.service_map[service_tuple]["shadow_topic"]
+        self.mqtt_connection.unsubscribe(topic=topic)
 
     def publishState(self):
         #Update thing state corresponding to the gateway 

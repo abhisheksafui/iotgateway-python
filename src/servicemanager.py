@@ -210,11 +210,11 @@ class DeviceManager(asyncio.Protocol):
         self._device_id = device_id
         self._addr = addr
         self._loop = loop
-        self._queue = asyncio.Queue(loop=loop)
+        self._queue = asyncio.Queue(loop=loop,maxsize=10)
         self._transport = None
         self._resp_cond = asyncio.Condition(loop=loop)
         self._respose = None
-        self._miss_count = 0
+        
         
         #self._last_activity = time.time()
 
@@ -242,8 +242,18 @@ class DeviceManager(asyncio.Protocol):
         self._respose = msg
         self._loop.create_task(self.signalQueueHandler())
         
-    def queueMessage(self, request):
-        self._queue.put_nowait(request)
+    def _queueMessage(self, request):
+        try:
+            self._queue.put_nowait(request)
+        except asyncio.QueueFull:
+            logging.error("Device {} Queue full. Skipping Message.".format(self._device_id))
+
+    def queueMessage(self, request):    
+        self._loop.call_soon_threadsafe(self._queueMessage, request)
+        # try:
+        #     self._queue.put_nowait(request)
+        # except asyncio.QueueFull:
+        #     logging.error("Device {} Queue full. Skipping Message.".format(self._device_id))
 
     async def signalQueueHandler(self):
         logging.debug("Signalling condition for device: {}".format(self._device_id))
@@ -278,7 +288,7 @@ class DeviceManager(asyncio.Protocol):
                         async with self._resp_cond:
                             logging.debug("Aquired self._resp_cond")
                             #await asyncio.wait_for(self._resp_cond.wait(), timeout=1, loop=self._loop)
-                            future = self._loop.create_task(self.wait_on_condition_with_timeout(self._resp_cond, 1))
+                            future = self._loop.create_task(self.wait_on_condition_with_timeout(self._resp_cond, 0.5))
                             await future
                             #await self._resp_cond.wait_for()
                             #response received
